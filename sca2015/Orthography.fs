@@ -5,61 +5,44 @@ open ParserUtils
 
 type Orthography =
     {
-        InputMap: List<(string * string)>;
-        OutputMap: List<(string * string)>
+        InputMap: (string * string) list;
+        OutputMap: (string * string) list
     }
 
-let split (line : string) =
+let split (line : string) : (string * string) =
     let m = Regex.Match(line, @"^(?<input>.+:\s*(?<output>.+)$")
 
     (m.Groups.["input"].Value, m.Groups.["output"].Value)
 
-let rec findInputPairs (lines : List<string>) =
+let rec parseSection (lines : string list) : (string * string) list =
     match lines with
     | [] -> []
-    | head :: tail -> if head = "[IPA to Script]"
+    | head :: tail -> if Regex.Match(head, @"^\[.+\]$").Success
                       then []
-                      else split head :: findInputPairs tail
+                      else split head :: parseSection tail
 
-let rec findInput (lines : List<string>) =
+let rec findSection (header : string) (lines : string list) : (string * string) list =
     match lines with
     | [] -> []
-    | head :: tail -> if head = "[Script to IPA]"
-                      then findInputPairs tail
-                      else findInput tail
+    | head :: tail -> if head = header
+                      then parseSection tail
+                      else findSection header tail
 
-let rec findOutputPairs (lines : List<string>) =
-    match lines with
-    | [] -> []
-    | head :: tail -> if head = "[Script to IPA]"
-                      then []
-                      else split head :: findOutputPairs tail
-
-let rec findOutput (lines : List<string>) =
-    match lines with
-    | [] -> []
-    | head :: tail -> if head = "[IPA to Script]"
-                      then findOutputPairs tail
-                      else findOutput tail
-
-let makeOrthography (lines : List<string>) =
+let makeOrthography (lines : string list) : Orthography =
     {
-        InputMap = findInput lines;
-        OutputMap = findOutput lines
+        InputMap = findSection "[Script to IPA]" lines;
+        OutputMap = findSection "[IPA to Script]" lines
     }
 
-let rec makeTransformer (map : List<(string * string)>) (s : string) =
+let rec makeTransformer (map : (string * string) list) (s : string) : string =
     match map with
     | [] -> s
     | (input, output) :: tail -> makeTransformer tail <| s.Replace(input, output)
 
-let makeTransformerMap (map : List<(string * string)>) =
-    List.map <| makeTransformer map
+let makeTransformers (orthography : Orthography) : ((string -> string) * (string -> string)) =
+    (makeTransformer orthography.InputMap, makeTransformer orthography.OutputMap)
 
-let makeTransformers (orthography : Orthography) =
-    (makeTransformerMap orthography.InputMap, makeTransformerMap orthography.OutputMap)
-
-let parseFile =
+let parseFile : string list -> ((string -> string) * (string -> string)) =
     removeEmptyLines
     >> List.map removeComment
     >> makeOrthography
