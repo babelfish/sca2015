@@ -4,9 +4,15 @@ type Lexeme =
     {
         Original: string;
         Current: IPA.Word;
-        Output: Option<string>
+        Output: string option
     }
 
-let parseFile =
+let makeLexeme (orthographyTransformer : (string -> string)) (word : string) : Lexeme =
+    { Original = word; Current = IPA.parseWord orthographyTransformer word; Output = None }
+
+let makeLexicon (orthographyTransformer : (string -> string)) : (string list -> Lexeme list) =
+    List.map (makeLexeme orthographyTransformer)
+
+let parseFile (orthographyTransformer : (string -> string)) : (string list -> Lexeme list) =
     ParserUtils.removeEmptyLines
-    >> List.map (ParserUtils.removeComment >> IPA.parseWord)
+    >> makeLexicon orthographyTransformer
