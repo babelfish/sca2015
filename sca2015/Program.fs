@@ -1,4 +1,5 @@
 ﻿open System.IO
+open FSharp.Collections.ParallelSeq
 
 let requireOption (options : Map<string, string>) name =
     match options.TryFind(name) with
@@ -12,11 +13,11 @@ let main argv =
     let options = List.ofSeq<string> argv |> CommandLineOptions.parseOptions
     let readOptionFile = requireOption options >> readFile >> List.ofArray
 
-    let orthography = readOptionFile "orthography" |> Orthography.parseFile
-    let lexicon = readOptionFile "lexicon" |> Lexicon.parseFile
-//    let rules = readOptionFile "rules" |> Rules.parseFile
+    let (inputTransformer, outputTransformer) = readOptionFile "orthography" |> Orthography.parseFile
+    let lexicon = readOptionFile "lexicon" |> Lexicon.parseFile inputTransformer
+    let rules = readOptionFile "rules" |> Rules.parseFile
 
-    printfn "%A" lexicon
+    printfn "%A" <| SoundChangeApplier.applyRules lexicon rules
 
     printfn "Press any key to continue..."
     
