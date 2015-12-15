@@ -2,44 +2,102 @@
 
 open ParserUtils
 
+//    | '\u030C' -> Some char // Combining caron (generic rising tone)
+//    | '\u0302' -> Some char // Combining circumflex (generic falling tone)
+
+// Internal phonetic representation
+
+type PlaceOfArticulation =
+    | Labial
+    | Linguolabial
+    | Labiodental
+    | Labiovelar
+    | Dental
+    | Alveolar
+    | Palatoalveolar
+    | Retroflex
+    | Alveolopalatal
+    | Palatal
+    | Velar
+    | Uvular
+    | Pharyngeal
+    | Glottal
+
+type MannerOfArticulation =
+    | Stop
+    | Nasal
+    | Fricative
+    | Affricate
+    | Flap
+    | Trill
+    | Approximant
+
+type AirstreamMechanism =
+    | Lingual
+    | Glottalic
+    | Pulmonic
+
+type PhonationType =
+    | Voiceless
+    | Breathy
+    | Slack
+    | Modal
+    | Stiff
+    | Creaky
+    | Glottal
+
+type PhoneLength =
+    | Short
+    | Normal
+    | HalfLong
+    | Long
+    | ExtraLong
+
 type Feature =
-    | Anterior
+    | AdditionalTargets of Phoneme list
+    | AdvancedTongueRoot
+    | Airstream of AirstreamMechanism
     | Aspirated
-    | Back
-    | Central
-    | Close
-    | Consonantal
     | Continuant
-    | Coronal
-    | DelayedRelease
     | Dental
     | Egressive
-    | Glottalic
-    | High
+    | Glottalized
+    | Labialized
     | Lateral
-    | Long
-    | Low
-    | Mid
-    | Nasal
-    | Open
+    | LessRounded
+    | Length of PhoneLength
+    | Lowered
+    | Manner of MannerOfArticulation
+    | MoreRounded
+    | Nasalized
+    | Obstruent
+    | Palatalized
+    | Pharyngealization
+    | Phonation of PhonationType
+    | Place of PlaceOfArticulation
+    | Raised
+    | RetractedTongueRoot
     | Retroflex
+    | Rhoticized
     | Rounded
     | Sonorant
+    | Short
     | Syllabic
-    | Velaric
-    | Vibration
-    | Voiced
+    | Unreleased
+    | Velarized
+    | VowelBacking of int
+    | VowelHeight of int
+
+and Phoneme =
+    {
+        Representation: char list;
+        Features: Set<Feature>;
+    }
 
 type Stress =
     | Primary
     | Secondary
     | Unstressed
-
-type Phoneme =
-    {
-        Representation: string;
-        Features: Set<Feature>;
-    }
 
 type Rime =
     {
@@ -52,7 +110,7 @@ type Syllable =
         Stress: Stress;
         Onset: Phoneme list;
         Rime: Rime;
-        Tone: string
+        Tone: char list option
     }
 
 type Word = 
@@ -60,6 +118,18 @@ type Word =
         Value: Syllable list;
         Annotation: string
     }
+
+type FeatureDetail =
+    {
+        PositiveModifier: char option;
+        NegativeModifier: char option;
+    }
+
+let featureDetails =
+    Map.empty
+       .Add(Aspirated, { PositiveModifier = Some 'ʰ'; NegativeModifier = None })
+
+// Parsing
 
 let (|SyllableBreak|_|) (char : char) =
     match char with
@@ -80,16 +150,9 @@ let (|BreakingToneMarkPrefix|_|) (char : char) =
     match char with
     | 'ꜛ' | 'ꜜ' -> Some char
     | _ -> None
-    
-//    | '\u030C' -> Some char // Combining caron (generic rising tone)
-//    | '\u0302' -> Some char // Combining circumflex (generic falling tone)
-
-let phonemeTable =
-    [
-    ]
      
 let parseSyllable (cs : char list) : Syllable =
-    { Stress = Primary; Tone = ""; Onset = []; Rime = { Nucleus = []; Coda = [] } }
+    { Stress = Primary; Tone = None; Onset = []; Rime = { Nucleus = []; Coda = [] } }
 
 let splitSyllables (word : char list) : char list list =
     let rec splitSyllables (syllables : char list list) (buffer : char list) (word : char list) : char list list =
