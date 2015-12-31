@@ -53,40 +53,57 @@ type PhoneLength =
     | Long
     | ExtraLong
 
+type Rounding =
+    | More
+    | Less
+    | Normal
+
+type VowelBacking =
+    | Front
+    | NearFront
+    | Central
+    | NearBack
+    | Back
+
+type VowelHeight =
+    | Close
+    | NearClose
+    | CloseMid
+    | Mid
+    | OpenMid
+    | NearOpen
+    | Open
+
 type Feature =
     | AdditionalTargets of Phoneme list
     | AdvancedTongueRoot
     | Airstream of AirstreamMechanism
     | Aspirated
     | Continuant
-    | Dental
     | Egressive
     | Glottalized
     | Labialized
     | Lateral
-    | LessRounded
     | Length of PhoneLength
     | Lowered
     | Manner of MannerOfArticulation
-    | MoreRounded
     | Nasalized
     | Obstruent
     | Palatalized
-    | Pharyngealization
+    | Pharyngealized
     | Phonation of PhonationType
     | Place of PlaceOfArticulation
     | Raised
     | RetractedTongueRoot
-    | Retroflex
     | Rhoticized
     | Rounded
+    | Rounding of Rounding
     | Sonorant
-    | Short
     | Syllabic
     | Unreleased
     | Velarized
-    | VowelBacking of int
-    | VowelHeight of int
+    | VowelBacking of VowelBacking
+    | VowelHeight of VowelHeight
 
 and Phoneme =
     {
