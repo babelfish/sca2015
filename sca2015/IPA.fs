@@ -181,7 +181,7 @@ let splitSyllables (word : char list) : char list list =
             | StressMark c | BreakingToneMarkPrefix c -> onPrefixBreak c tail
             | BreakingToneMarkSuffix c -> onSuffixBreak c tail
             | c -> splitSyllables syllables (c :: buffer) tail
-
+            
     splitSyllables [] [] word
 
 let makeWord (word : string) : Syllable list =

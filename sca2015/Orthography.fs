@@ -8,7 +8,7 @@ type Orthography =
         InputMap: (string * string) list;
         OutputMap: (string * string) list
     }
-
+    ~
 let split (line : string) : (string * string) =
     let m = Regex.Match(line, @"^(?<input>.+:\s*(?<output>.+)$")
 

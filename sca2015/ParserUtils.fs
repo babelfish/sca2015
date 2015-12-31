@@ -29,7 +29,7 @@ let implode (cs : char list) =
     sb.ToString()
 
 let listContains c = List.exists ((=) c)
-    
+
 type Result<'a> =
     | Success of 'a
     | Failure of string option
