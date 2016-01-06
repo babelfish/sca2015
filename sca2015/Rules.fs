@@ -60,7 +60,7 @@ let featureTable =
        .Add(["vel"; "velar"], Place Velar)
        .Add(["uvu"; "uvular"], Place Uvular)
        .Add(["phar"; "pharyngeal"], Place Pharyngeal)
-       .Add(["glot"; "glottal"], Place Glottal)
+       .Add(["glot"; "glottal"], Place PlaceOfArticulation.Glottal)
        .Add(["raised"], Raised)
        .Add(["rtr"], RetractedTongueRoot)
        .Add(["rhot"; "rhotic"; "rhoticized"], Rhoticized)
@@ -105,18 +105,23 @@ let makeTrigger s =
             let key = Map.tryFindKey (fun key value -> List.contains s key) featureTable
 
             match key with
-            | Some key -> featureTable.find key
-            | None -> failwithf "%A is not a valid feature."
+            | Some key -> Map.find key featureTable
+            | None -> failwithf "%A is not a valid feature." s
 
         if not m.Success
         then failwithf "Unable to parse %A as a feature." s
         else (parseSign m.Groups.["b"].Value, lookupFeature m.Groups.["feature"].Value)
 
     let makeFeatureTrigger s =
+        let rsplit s : string list = Regex.Split(s, @"\s*,\s*") |> List.ofArray
+        
+        let makeFeatures xs =
+            Features xs
+
         Regex.Match(s, brackets).Groups.["content"].Value
-        |> Regex.Split(@"\s*,\s*")
+        |> rsplit
         |> List.map parseFeature
-        :?> Trigger
+        |> makeFeatures
 
     match s with
     | s when Regex.Match(s, brackets).Success -> makeFeatureTrigger s
@@ -138,7 +143,7 @@ let splitLine line =
     }
 
 let makeRule line =
-    ""
+    { Trigger = Literal ""; Change = Change ""; Environment = Environment ""}
 
 let parseFile =
     removeEmptyLines >>
