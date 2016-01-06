@@ -173,8 +173,6 @@ let parseSyllable (cs : char list) : Syllable =
 
 let splitSyllables (word : char list) : char list list =
     let rec splitSyllables (syllables : char list list) (buffer : char list) (word : char list) : char list list =
-        printfn "%A %A %A" syllables buffer word
-
         let onBreak tail =
             match buffer with
             | [] -> splitSyllables syllables buffer tail
