@@ -1,9 +1,9 @@
 ﻿module IPATest
 
-open ParserUtils
-open IPA
 open Xunit
 open FsUnit.Xunit
+open ParserUtils
+open IPA
 
 type ``splitSyllables tests`` () =
     [<Fact>]

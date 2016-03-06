@@ -1,15 +1,13 @@
 ﻿module Rules
 
 open IPA
+open Parser
 open ParserUtils
 open System.Text.RegularExpressions
 
-type Trigger = 
-    | Literal of string
-    | Features of (bool * Feature) list
-
-type Change = Change of string
-type Environment = Environment of string
+type RuleFeatures = 
+    | Literal of string * string option
+    | FeatureSet of (bool * Feature) list * string option
 
 let featureTable =
     Map.empty
@@ -84,67 +82,100 @@ let featureTable =
 
 type Rule =
     {
-        Trigger: Trigger;
-        Change: Change;
-        Environment: Environment
+        Trigger: RuleFeatures list;
+        Change: RuleFeatures list;
+        Environment: string;
+        Annotation: string option
     }
 
-let makeTrigger s =
-    let brackets = @"^\[(?<content>.+)\]$"
+let IPAParser =
+    let p stream =
+        match stream with
+        | x :: xs when validIPA.Contains(x) -> Success(x, xs)
+        | _ -> Failure
+    in p
 
-    let parseFeature s =
-        let m = Regex.Match(s, @"^(?<b>[-+])(?<feature>.+)$")
+let SignParser = (pChar '+' >>% true) <|> (pChar '-' >>% false)
 
-        let parseSign s =
-            match s with
-            | "+" -> true
-            | "-" -> false
-            | _ -> failwith "Congratulations, you broke the universe."
+let NonSignParser =
+    noneOf ['+'; '-']
+
+let lookupFeature s =
+    let key = Map.tryFindKey (fun key value -> List.contains s key) featureTable
+
+    match key with
+    | Some key -> Map.find key featureTable
+    | None -> failwithf "%A is not a valid feature." s
+
+let AnnotationParser =
+    parse {
+        let! annotation = Many1 pLetterOrDigit .>> pChar ':'
+
+        return annotation
+    }
+
+let FeatureSetParser =
+    let featuresParser =
+        Many1 (parse {
+            let! s = SignParser
+            let! cs = Many1 NonSignParser
+                
+            return (s, implode cs |> lookupFeature)
+        }) 
+
+    parse {
+        let! features = pChar '[' >>. featuresParser .>> pChar ']'
+
+        return features
+    }
+
+let LiteralParser =
+    parse {
+        let! literal = Many1 IPAParser
+
+        return literal
+    }
+
+let FeatureParser =
+    parse {
+        let! feature = FeatureSetParser <|> LiteralParser
+
+        return feature
+    }
+    
+
+let FeaturesParser =
+    parse {
+        let! features = Many1 FeatureParser
+
+        return features
+    }
+
+let parseFeatures s =
+    match FeaturesParser <| explode s with
+    | Success(x, xs) -> x
+    | Failure -> failwithf "Failed to parse %A as a valid list of features." s
+
+let RuleParser =
+    parse {
+        let! trigger = TriggerParser
+        let! change = ChangeParser
+        let! environment = EnvironmentParser
+        let! annotation = CommentParser
         
-        let lookupFeature s =
-            let key = Map.tryFindKey (fun key value -> List.contains s key) featureTable
-
-            match key with
-            | Some key -> Map.find key featureTable
-            | None -> failwithf "%A is not a valid feature." s
-
-        if not m.Success
-        then failwithf "Unable to parse %A as a feature." s
-        else (parseSign m.Groups.["b"].Value, lookupFeature m.Groups.["feature"].Value)
-
-    let makeFeatureTrigger s =
-        let rsplit s : string list = Regex.Split(s, @"\s*,\s*") |> List.ofArray
-        
-        let makeFeatures xs =
-            Features xs
-
-        Regex.Match(s, brackets).Groups.["content"].Value
-        |> rsplit
-        |> List.map parseFeature
-        |> makeFeatures
-
-    match s with
-    | s when Regex.Match(s, brackets).Success -> makeFeatureTrigger s
-    | _ -> Literal s
-
-let makeChange s =
-    Change s
-
-let makeEnvironment s =
-    Environment s
-
-let splitLine line =
-    let m = Regex.Match(line, @"^\s*(?<trigger>.+)\s*->\s*(?<change>.+)\s*/\s*(?<environment>.+)\s*$")
-
-    {
-        Trigger = makeTrigger m.Groups.["trigger"].Value;
-        Change = makeChange m.Groups.["change"].Value;
-        Environment = makeEnvironment m.Groups.["environment"].Value
+        return { Trigger = trigger; Change = change; Environment = environment; Annotation = annotation }
     }
 
 let makeRule line =
-    { Trigger = Literal ""; Change = Change ""; Environment = Environment ""}
+    let m = line =~ @"^(?<trigger>.+?)->(?<change>.+?)/(?<environment>.+?)$"
+
+    {
+        Trigger =  m.Groups.["trigger"].Value |> parseFeatures;
+        Change =  m.Groups.["change"].Value |> parseFeatures;
+        Environment = m.Groups.["environment"].Value;
+        Annotation = None
+    }
 
 let parseFile =
     removeEmptyLines >>
-    List.map (removeComment >> makeRule)
+    List.map (removeComment >> stripWhitespace >> makeRule)

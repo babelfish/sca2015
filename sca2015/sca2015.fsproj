@@ -61,11 +61,16 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="ParserUtils.fs" />
+    <Compile Include="Parser.fs" />
     <Compile Include="IPA.fs" />
     <Compile Include="IPATest.fs" />
     <Compile Include="Orthography.fs" />
     <Compile Include="Lexicon.fs" />
     <Compile Include="Rules.fs" />
+    <Compile Include="RulesTest.fs">
+      <SubType>
+      </SubType>
+    </Compile>
     <Compile Include="CommandLineOptions.fs" />
     <Compile Include="SoundChangeApplier.fs" />
     <Compile Include="Program.fs" />
